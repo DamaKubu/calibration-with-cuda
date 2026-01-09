@@ -1,0 +1,74 @@
+# ============================================================================
+# Camera Calibration Requirements
+# ============================================================================
+# This file lists all dependencies for camera calibration scripts.
+# Some scripts support GPU acceleration (CUDA) but all can run on CPU only.
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# CORE DEPENDENCIES (Required for ALL scripts)
+# ----------------------------------------------------------------------------
+
+# Computer vision library
+# Used by: ALL Python files in main/intrinsic/ and main/extrinsic/
+# Note: Install opencv-python for CPU-only OR opencv-contrib-python for CPU+extra modules
+opencv-python>=4.8.0
+
+# Numerical computing
+# Used by: ALL Python files
+numpy>=1.24.0
+
+# YAML configuration file support
+# Used by: main/intrinsic/calibrate_camera.py (for saving calibration results)
+PyYAML>=6.0
+
+
+# ----------------------------------------------------------------------------
+# OPTIONAL: GPU/CUDA ACCELERATION
+# ----------------------------------------------------------------------------
+# If you want to use GPU acceleration (faster processing), install one of these
+# OpenCV builds WITH CUDA support instead of opencv-python:
+#
+# Option 1: Build opencv-python from source with CUDA enabled
+# Option 2: Use pre-built opencv-contrib-python (may include CUDA if available)
+# Option 3: Use opencv-python-headless with custom CUDA build
+#
+# GPU-accelerated files:
+#   - main/intrinsic/calibrate_camera.py (--use-gpu flag)
+#   - main/intrinsic/capture_calibration_images.py (--use-gpu flag)
+#   - main/intrinsic/intrinsic_calibration_cuda.py (--use-gpu flag)
+#
+# NOTE: Without CUDA, these scripts automatically fall back to CPU processing.
+#       CPU calibration works perfectly fine, it just takes longer.
+#
+# To check if CUDA is available in your OpenCV installation:
+#   python -c "import cv2; print('CUDA available:', hasattr(cv2, 'cuda') and cv2.cuda.getCudaEnabledDeviceCount() > 0)"
+
+
+# ----------------------------------------------------------------------------
+# FILE-SPECIFIC DEPENDENCY SUMMARY
+# ----------------------------------------------------------------------------
+#
+# main/intrinsic/minimalistic_calibration.py
+#   - opencv-python (CPU only, no GPU support in this script)
+#   - numpy
+#
+# main/intrinsic/calibrate_camera.py
+#   - opencv-python (with optional CUDA support via --use-gpu)
+#   - numpy
+#   - PyYAML
+#
+# main/intrinsic/capture_calibration_images.py
+#   - opencv-python (with optional CUDA support via --use-gpu)
+#   - numpy
+#
+# main/intrinsic/intrinsic_calibration_cuda.py
+#   - Wrapper script, uses calibrate_camera.py dependencies
+#   - opencv-python (with optional CUDA support via --use-gpu)
+#   - numpy
+#   - PyYAML
+#
+# main/extrinsic/simplest.py
+#   - Currently empty
+#
+# ----------------------------------------------------------------------------

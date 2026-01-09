@@ -1,0 +1,142 @@
+Get-PnpDevice -Class Camera -PresentOnly | Select-Object FriendlyName, InstanceId, Status
+
+FriendlyName      InstanceId                                    Status
+------------      ----------                                    ------
+Integrated Camera USB\VID_5986&PID_214D&MI_00\6&33B2F6F2&1&0000 OK
+
+
+Laptopo_levono_kamera_0 po 15 kadru su chessboardu:
+
+
+Calibration successful
+Image size: (1920, 1080)
+RMS reprojection error: 1.548054
+
+Fisheye intrinsics (K):
+ [[1.13630238e+03 0.00000000e+00 9.16413770e+02]
+ [0.00000000e+00 1.12897451e+03 5.63109237e+02]
+ [0.00000000e+00 0.00000000e+00 1.00000000e+00]]
+Fisheye distortion (D, k1..k4):
+ [ 0.46313228 -0.29000073  1.35271805 -1.56712359]
+
+Virtual pinhole intrinsics (K_new):
+ [[1.15941974e+03 0.00000000e+00 9.59500000e+02]
+ [0.00000000e+00 1.15194280e+03 5.39500000e+02]
+ [0.00000000e+00 0.00000000e+00 1.00000000e+00]]
+Horizontal FOV from K_new: 79.250 deg
+
+
+
+
+
+CAMERA_1 (left camera of the metal pole) skaiciukas 1.
+
+FHD Camera        USB\VID_1BCF&PID_2286&MI_00\7&12826AC5&0&0000 OK
+
+
+Calibration successful
+Image size: (480, 640)
+RMS reprojection error: 1.043834
+
+Fisheye intrinsics (K):
+ [[437.54728577   0.         213.94947413]
+ [  0.         439.78281517 308.74963384]
+ [  0.           0.           1.        ]]
+Fisheye distortion (D, k1..k4):
+ [-0.06439104 -0.05041572  0.07380125 -0.03962364]
+
+Virtual pinhole intrinsics (K_new):
+ [[382.13147582   0.         239.5       ]
+ [  0.         384.08387314 319.5       ]
+ [  0.           0.           1.        ]]
+Horizontal FOV from K_new: 64.262 deg
+
+
+Saved: C:\Users\IT Logika\Documents\simple\camera-system-calibration\stereo_calibration\src\cam1_intrinsics_fisheye.yaml
+
+Pixel->ray (undistorted image using K_new):
+x = (u - cx) / fx; y = (v - cy) / fy; ray = normalize([x, y, 1])
+Use fx,fy,cx,cy from K_new.
+
+720x1280.
+
+
+su gera kokybe insane ilgai uztrunka kalibruot, reikia kad abu ir kamera ir chessboard butu stacionarus(negalima laikyt rankose nes biski juda ir nera good enough focuso.)
+
+Camera 2 (right camera of the metal pole) skaiciuks 2
+
+Integrated Camera USB\VID_5986&PID_214D&MI_00\6&33B2F6F2&1&0000 OK
+
+
+
+Running fisheye calibration...
+
+Calibration successful
+Image size: (1080, 1920)
+RMS reprojection error: 4.214977
+
+Fisheye intrinsics (K):
+ [[1.01418342e+03 0.00000000e+00 6.36942594e+02]
+ [0.00000000e+00 1.00724391e+03 9.13957572e+02]
+ [0.00000000e+00 0.00000000e+00 1.00000000e+00]]
+Fisheye distortion (D, k1..k4):
+ [ -0.37776124   2.84067335 -10.78773394  14.21674426]
+
+Virtual pinhole intrinsics (K_new):
+ [[1.02600677e+03 0.00000000e+00 5.39500000e+02]
+ [0.00000000e+00 1.01898636e+03 9.59500000e+02]
+ [0.00000000e+00 0.00000000e+00 1.00000000e+00]]
+Horizontal FOV from K_new: 55.517 deg
+
+Saved: C:\Users\IT Logika\Documents\simple\camera_intrinsics_fisheye.yaml
+
+Pixel->ray (undistorted image using K_new):
+x = (u - cx) / fx; y = (v - cy) / fy; ray = normalize([x, y, 1])
+Use fx,fy,cx,cy from K_new.
+
+
+
+
+
+
+
+
+
+C:\Users\IT Logika\AppData\Local\Programs\Python\Python313\python.exe
+
+
+
+
+
+
+
+cmake -G "Visual Studio 17 2022" -A x64 `
+  -D CMAKE_BUILD_TYPE=Release `
+  -D CMAKE_INSTALL_PREFIX="C:/ProgramData/opencv/install" `
+  -D OPENCV_EXTRA_MODULES_PATH="C:/ProgramData/opencv/opencv_contrib/modules" `
+  -D WITH_CUDA=ON `
+  -D OPENCV_DNN_CUDA=ON `
+  -D WITH_CUDNN=ON `
+  -D CUDNN_INCLUDE_DIR="C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.4/include" `
+  -D CUDNN_LIBRARY="C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.4/lib/x64/cudnn.lib" `
+  -D BUILD_opencv_python3=ON `
+  -D PYTHON_EXECUTABLE="C:\Users\IT Logika\AppData\Local\Programs\Python\Python313\python.exe" `
+  -D BUILD_EXAMPLES=OFF `
+  -D BUILD_TESTS=OFF `
+  -D BUILD_DOCS=OFF `
+  -D BUILD_opencv_world=OFF `
+  -D NASM_EXECUTABLE="C:/Program Files/NASM/nasm.exe" `
+  C:/ProgramData/opencv/opencv
+
+
+
+
+
+
+
+
+
+
+
+
+

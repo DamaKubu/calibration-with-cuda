@@ -1,0 +1,57 @@
+{
+  "cameras": [
+    {
+      "id": "cam0",
+      "friendly_name": "Integrated Camera",
+      "instance_id": "USB\\VID_5986&PID_214D&MI_00\\6&33B2F6F2&1&0000",
+      "calibration_success": true,
+      "image_size": [1920, 1080],
+      "rms_reprojection_error": 1.548054,
+      "fisheye": {
+        "K": [[1136.30238, 0, 916.41377], [0, 1128.97451, 563.109237], [0, 0, 1]],
+        "D": [0.46313228, -0.29000073, 1.35271805, -1.56712359]
+      },
+      "pinhole": {
+        "K_new": [[1159.41974, 0, 959.5], [0, 1151.9428, 539.5], [0, 0, 1]],
+        "hfov_deg": 79.25
+      },
+      "notes": "Laptopo_levono_kamera_0 po 15 kadru su chessboardu"
+    },
+    {
+      "id": "cam1",
+      "friendly_name": "FHD Camera",
+      "instance_id": "USB\\VID_1BCF&PID_2286&MI_00\\7&12826AC5&0&0000",
+      "calibration_success": true,
+      "image_size": [480, 640],
+      "rms_reprojection_error": 1.043834,
+      "fisheye": {
+        "K": [[437.54728577, 0, 213.94947413], [0, 439.78281517, 308.74963384], [0, 0, 1]],
+        "D": [-0.06439104, -0.05041572, 0.07380125, -0.03962364]
+      },
+      "pinhole": {
+        "K_new": [[382.13147582, 0, 239.5], [0, 384.08387314, 319.5], [0, 0, 1]],
+        "hfov_deg": 64.262
+      },
+      "notes": "CAMERA_1 (left camera of the metal pole) skaiciukas 1; 720x1280 note"
+    },
+    {
+      "id": "cam2",
+      "friendly_name": "FHD Camera",
+      "instance_id": "USB\\VID_5986&PID_214D&MI_00\\6&33B2F6F2&1&0000",
+      "calibration_success": true,
+      "image_size": [1080, 1920],
+      "rms_reprojection_error": 4.214977,
+      "fisheye": {
+        "K": [[1014.18342, 0, 636.942594], [0, 1007.24391, 913.957572], [0, 0, 1]],
+        "D": [-0.37776124, 2.84067335, -10.78773394, 14.21674426]
+      },
+      "pinhole": {
+        "K_new": [[1026.00677, 0, 539.5], [0, 1018.98636, 959.5], [0, 0, 1]],
+        "hfov_deg": 55.517
+      },
+      "notes": "Camera 2 (right camera of the metal pole) skaiciuks 2"
+    },
+    { "id": "cam3", "calibration_success": false, "notes": "" },
+    { "id": "cam4", "calibration_success": false, "notes": "" }
+  ]
+}

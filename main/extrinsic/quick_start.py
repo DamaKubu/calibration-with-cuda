@@ -12,6 +12,7 @@ Date: January 2026
 import json
 import sys
 from pathlib import Path
+
 import numpy as np
 
 
@@ -45,7 +46,7 @@ def check_intrinsic_calibration():
     for cam in data['cameras']:
         cam_id = cam['id']
         rms = cam.get('rms_reprojection_error', 999)
-        img_size = cam['image_size']
+        img_size = cam.get('image_size', [0, 0])
         
         status = "✓ GOOD" if rms < 2.0 else "⚠ ACCEPTABLE" if rms < 3.0 else "❌ POOR"
         

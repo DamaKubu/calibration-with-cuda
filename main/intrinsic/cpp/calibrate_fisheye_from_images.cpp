@@ -8,7 +8,6 @@
 #include <map>
 #include <numeric>
 #include <optional>
-#include <system_error>
 #include <string>
 #include <vector>
 
@@ -19,7 +18,7 @@ static void printUsage() {
     << "Offline intrinsic calibration with outlier rejection (C++)\n"
         << "Usage:\n"
     << "  calibrate_fisheye_from_images.exe --images-dir calib_cam0 --pattern 8x5 --square-mm 65 \\\n"
-    << "      --model standard --output intrinsics_cam0.yml\n"
+    << "      --model standard --output intrinsics_cam0.txt\n"
         << "\nOptions:\n"
         << "  --images-dir <dir>            Directory of PNG images\n"
         << "  --ext <png|jpg>               Extension filter (default png)\n"
@@ -28,7 +27,7 @@ static void printUsage() {
     << "  --model <standard|fisheye>    Lens model (default standard)\n"
         << "  --max-per-image-error <float> Reject images above this reproj error (px) (default 1.2)\n"
         << "  --max-remove <int>            Max outliers to remove (default 15)\n"
-        << "  --output <file.yml>           Output YAML (default intrinsics_fisheye.yml)\n";
+        << "  --output <file.txt>           Output text file (default intrinsics.txt)\n";
 }
 
 static bool parsePattern(const std::string& s, cv::Size& pattern) {
@@ -90,78 +89,6 @@ static double mean(const std::vector<double>& v) {
     return std::accumulate(v.begin(), v.end(), 0.0) / static_cast<double>(v.size());
 }
 
-static bool writeOpenCvYamlFallback(
-    const fs::path& outPath,
-    const std::string& model,
-    const cv::Size& pattern,
-    double squareMm,
-    const cv::Size& imageSize,
-    double rms,
-    const cv::Mat& K,
-    const cv::Mat& D,
-    const std::vector<std::string>& keptImagePaths,
-    const std::map<std::string, double>& perImage,
-    const std::vector<std::pair<std::string, double>>& rejected) {
-    std::ofstream os(outPath, std::ios::out | std::ios::trunc);
-    if (!os.is_open()) return false;
-
-    auto writeMat = [&](const char* key, const cv::Mat& m) {
-        cv::Mat mm;
-        m.convertTo(mm, CV_64F);
-        os << key << ": !!opencv-matrix\n";
-        os << "   rows: " << mm.rows << "\n";
-        os << "   cols: " << mm.cols << "\n";
-        os << "   dt: d\n";
-        os << "   data: [";
-        for (int r = 0; r < mm.rows; ++r) {
-            for (int c = 0; c < mm.cols; ++c) {
-                os << mm.at<double>(r, c);
-                if (!(r == mm.rows - 1 && c == mm.cols - 1)) os << ", ";
-            }
-        }
-        os << "]\n";
-    };
-
-    os << "%YAML:1.0\n---\n";
-    os << "model: " << model << "\n";
-    os << "pattern_cols: " << pattern.width << "\n";
-    os << "pattern_rows: " << pattern.height << "\n";
-    os << "square_mm: " << squareMm << "\n";
-    os << "image_width: " << imageSize.width << "\n";
-    os << "image_height: " << imageSize.height << "\n";
-    os << "rms_error_px: " << rms << "\n";
-    writeMat("camera_matrix", K);
-    writeMat("distortion_coefficients", D);
-
-    os << "kept_images: [";
-    for (size_t i = 0; i < keptImagePaths.size(); ++i) {
-        os << "\"" << fs::path(keptImagePaths[i]).filename().string() << "\"";
-        if (i + 1 != keptImagePaths.size()) os << ", ";
-    }
-    os << "]\n";
-
-    os << "per_image_reproj_error_px: {";
-    {
-        bool first = true;
-        for (const auto& kv : perImage) {
-            if (!first) os << ", ";
-            first = false;
-            os << "\"" << fs::path(kv.first).filename().string() << "\": " << kv.second;
-        }
-    }
-    os << "}\n";
-
-    os << "rejected: [";
-    for (size_t i = 0; i < rejected.size(); ++i) {
-        os << "{path: \"" << rejected[i].first << "\", reproj_error_px: " << rejected[i].second << "}";
-        if (i + 1 != rejected.size()) os << ", ";
-    }
-    os << "]\n";
-
-    os.flush();
-    return os.good();
-}
-
 int main(int argc, char** argv) {
     fs::path imagesDir;
     std::string extLower = "png";
@@ -170,7 +97,7 @@ int main(int argc, char** argv) {
     std::string model = "standard";
     double maxPerImageError = 1.2;
     int maxRemove = 15;
-    std::string output = "intrinsics.yml";
+    std::string output = "intrinsics.txt";
 
     for (int i = 1; i < argc; ++i) {
         std::string a = argv[i];
@@ -421,101 +348,64 @@ int main(int argc, char** argv) {
     std::cout << "K:\n" << K << "\n\n";
     std::cout << "D:\n" << D.t() << "\n";
 
-    // Save YAML (atomic: write to temp then rename)
+    // Save plain text (simple + robust)
     const fs::path outPath = fs::path(output);
     const fs::path outAbs = fs::absolute(outPath);
-    const fs::path tmpPath = outPath.string() + ".tmp";
-    if (outPath.has_parent_path()) {
-        std::error_code ec;
-        fs::create_directories(outPath.parent_path(), ec);
-        if (ec) {
-            std::cerr << "WARNING: Cannot create output directory: " << outPath.parent_path().string()
-                      << " (" << ec.message() << ")\n";
+    try {
+        if (outPath.has_parent_path()) {
+            fs::create_directories(outPath.parent_path());
         }
+    } catch (...) {
+        // ignore
     }
 
-    cv::FileStorage fsOut(tmpPath.string(), cv::FileStorage::WRITE | cv::FileStorage::FORMAT_YAML);
-    if (!fsOut.isOpened()) {
-        std::cerr << "ERROR: Cannot write temp file " << fs::absolute(tmpPath).string() << "\n";
+    std::ofstream os(outPath, std::ios::out | std::ios::trunc);
+    if (!os.is_open()) {
+        std::cerr << "ERROR: Cannot write " << outAbs.string() << "\n";
         return 1;
     }
 
-    fsOut << "model" << model;
-    fsOut << "pattern_cols" << pattern.width;
-    fsOut << "pattern_rows" << pattern.height;
-    fsOut << "square_mm" << squareMm;
-    fsOut << "image_width" << imageSize.width;
-    fsOut << "image_height" << imageSize.height;
-    fsOut << "rms_error_px" << rms;
-    fsOut << "camera_matrix" << K;
-    fsOut << "distortion_coefficients" << D;
+    const double maxErr = *std::max_element(perErr.begin(), perErr.end());
 
-    fsOut << "kept_images" << "[";
-    for (int idx : kept) {
-        fsOut << paths[static_cast<size_t>(idx)];
-    }
-    fsOut << "]";
+    os << "model=" << model << "\n";
+    os << "pattern=" << pattern.width << "x" << pattern.height << "\n";
+    os << "square_mm=" << squareMm << "\n";
+    os << "image_size=" << imageSize.width << "x" << imageSize.height << "\n";
+    os << "used_images=" << kept.size() << "\n";
+    os << "rejected_images=" << rejected.size() << "\n";
+    os << "rms_solver_px=" << rms << "\n";
+    os << "mean_reproj_px=" << mean(perErr) << "\n";
+    os << "max_reproj_px=" << maxErr << "\n";
 
-    fsOut << "per_image_reproj_error_px" << "{";
-    for (const auto& kv : perImage) {
-        // Use base filename as key to keep YAML readable
-        fsOut << fs::path(kv.first).filename().string() << kv.second;
-    }
-    fsOut << "}";
-
-    fsOut << "rejected" << "[";
-    for (const auto& r : rejected) {
-        fsOut << "{";
-        fsOut << "path" << r.path;
-        fsOut << "reproj_error_px" << r.errorPx;
-        fsOut << "}";
-    }
-    fsOut << "]";
-
-    fsOut.release();
-
-    auto fileNonEmpty = [&](const fs::path& p) -> bool {
-        std::error_code ec;
-        const auto sz = fs::file_size(p, ec);
-        return (!ec && sz > 0);
-    };
-
-    if (!fileNonEmpty(tmpPath)) {
-        std::cerr << "WARNING: FileStorage produced empty output; using fallback YAML writer...\n";
-
-        std::vector<std::string> keptPaths;
-        keptPaths.reserve(kept.size());
-        for (int idx : kept) keptPaths.push_back(paths[static_cast<size_t>(idx)]);
-
-        std::vector<std::pair<std::string, double>> rej;
-        rej.reserve(rejected.size());
-        for (const auto& r : rejected) rej.push_back({r.path, r.errorPx});
-
-        if (!writeOpenCvYamlFallback(tmpPath, model, pattern, squareMm, imageSize, rms, K, D, keptPaths, perImage, rej)) {
-            std::cerr << "ERROR: Fallback writer failed for " << fs::absolute(tmpPath).string() << "\n";
-            return 1;
-        }
-        if (!fileNonEmpty(tmpPath)) {
-            std::cerr << "ERROR: Temp output file is still empty: " << fs::absolute(tmpPath).string() << "\n";
-            return 1;
-        }
+    os << "\nK:\n";
+    for (int r = 0; r < 3; ++r) {
+        os << K.at<double>(r, 0) << " " << K.at<double>(r, 1) << " " << K.at<double>(r, 2) << "\n";
     }
 
-    // Replace final output with temp (best effort)
+    os << "\nD:";
     {
-        std::error_code ec;
-        fs::remove(outPath, ec); // ignore errors (file may not exist)
-        ec.clear();
-        fs::rename(tmpPath, outPath, ec);
-        if (ec) {
-            std::cerr << "ERROR: Cannot rename temp output to final: " << ec.message() << "\n";
-            std::cerr << "Temp file kept at: " << fs::absolute(tmpPath).string() << "\n";
-            return 1;
+        cv::Mat d = D.reshape(1, 1);
+        for (int i = 0; i < d.cols; ++i) {
+            os << (i == 0 ? " " : " ") << d.at<double>(0, i);
+        }
+        os << "\n";
+    }
+
+    os << "\nper_image_error_px:\n";
+    for (const auto& kv : perImage) {
+        os << fs::path(kv.first).filename().string() << " " << kv.second << "\n";
+    }
+
+    if (!rejected.empty()) {
+        os << "\nrejected:\n";
+        for (const auto& r : rejected) {
+            os << fs::path(r.path).filename().string() << " " << r.errorPx << "\n";
         }
     }
 
-    if (!fileNonEmpty(outPath)) {
-        std::cerr << "ERROR: Final output file is empty: " << outAbs.string() << "\n";
+    os.flush();
+    if (!os.good()) {
+        std::cerr << "ERROR: Write failed for " << outAbs.string() << "\n";
         return 1;
     }
 

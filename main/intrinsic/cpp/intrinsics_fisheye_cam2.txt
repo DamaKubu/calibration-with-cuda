@@ -1,0 +1,72 @@
+model=fisheye
+pattern=8x5
+square_mm=65
+image_size=1080x1920
+used_images=36
+rejected_images=16
+rms_solver_px=1.24363
+mean_reproj_px=0.948917
+max_reproj_px=3.0431
+
+K:
+964.189 0 584.265
+0 967.656 915.914
+0 0 1
+
+D: -0.0704403 -0.0111879 0.00207547 0.000429807
+
+per_image_error_px:
+calib_0001.png 0.403608
+calib_0005.png 2.83158
+calib_0006.png 0.642557
+calib_0012.png 3.02635
+calib_0015.png 0.55974
+calib_0019.png 0.461138
+calib_0020.png 0.714908
+calib_0021.png 0.524644
+calib_0023.png 3.0431
+calib_0024.png 0.650501
+calib_0025.png 0.53454
+calib_0026.png 0.735482
+calib_0027.png 0.532106
+calib_0028.png 0.542634
+calib_0029.png 0.65852
+calib_0030.png 1.07256
+calib_0033.png 2.4049
+calib_0034.png 0.600031
+calib_0035.png 0.505171
+calib_0036.png 0.532538
+calib_0037.png 0.50293
+calib_0039.png 0.553764
+calib_0040.png 0.535512
+calib_0041.png 0.635733
+calib_0042.png 0.610493
+calib_0043.png 0.653452
+calib_0044.png 0.692145
+calib_0045.png 0.751111
+calib_0046.png 0.69888
+calib_0047.png 0.380071
+calib_0050.png 2.77568
+calib_0051.png 2.32123
+calib_0052.png 0.886421
+calib_0053.png 0.40051
+calib_0054.png 0.590638
+calib_0058.png 0.707341
+
+rejected:
+calib_0008.png 13.2826
+calib_0016.png 12.773
+calib_0010.png 11.2658
+calib_0011.png 10.2981
+calib_0017.png 8.73115
+calib_0007.png 7.99622
+calib_0009.png 6.4334
+calib_0049.png 5.72286
+calib_0014.png 5.68285
+calib_0057.png 5.04137
+calib_0038.png 3.3426
+calib_0003.png 3.33873
+calib_0018.png 3.28122
+calib_0059.png 3.21408
+calib_0056.png 3.15659
+calib_0022.png 3.0431

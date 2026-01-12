@@ -1,0 +1,50 @@
+model=fisheye
+pattern=8x5
+square_mm=65
+image_size=1080x1920
+used_images=27
+rejected_images=3
+rms_solver_px=0.515481
+mean_reproj_px=0.500315
+max_reproj_px=0.699227
+
+K:
+978.897 0 471.755
+0 983.365 942.777
+0 0 1
+
+D: -0.0858003 0.0351176 -0.0576966 0.0283025
+
+per_image_error_px:
+calib_0000.png 0.699227
+calib_0001.png 0.387324
+calib_0002.png 0.339382
+calib_0003.png 0.381209
+calib_0004.png 0.514408
+calib_0005.png 0.466867
+calib_0006.png 0.602176
+calib_0007.png 0.634875
+calib_0008.png 0.361153
+calib_0010.png 0.453932
+calib_0012.png 0.344152
+calib_0013.png 0.331151
+calib_0015.png 0.317974
+calib_0016.png 0.298323
+calib_0017.png 0.334906
+calib_0018.png 0.56626
+calib_0019.png 0.61783
+calib_0020.png 0.590565
+calib_0021.png 0.663128
+calib_0022.png 0.600685
+calib_0023.png 0.628144
+calib_0024.png 0.620079
+calib_0025.png 0.579343
+calib_0026.png 0.589592
+calib_0027.png 0.564791
+calib_0028.png 0.563631
+calib_0029.png 0.457387
+
+rejected:
+calib_0009.png 31.6655
+calib_0011.png 35.8522
+calib_0014.png 31.6445

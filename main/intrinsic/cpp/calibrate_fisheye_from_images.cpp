@@ -3,10 +3,12 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <map>
 #include <numeric>
 #include <optional>
+#include <system_error>
 #include <string>
 #include <vector>
 
@@ -88,6 +90,78 @@ static double mean(const std::vector<double>& v) {
     return std::accumulate(v.begin(), v.end(), 0.0) / static_cast<double>(v.size());
 }
 
+static bool writeOpenCvYamlFallback(
+    const fs::path& outPath,
+    const std::string& model,
+    const cv::Size& pattern,
+    double squareMm,
+    const cv::Size& imageSize,
+    double rms,
+    const cv::Mat& K,
+    const cv::Mat& D,
+    const std::vector<std::string>& keptImagePaths,
+    const std::map<std::string, double>& perImage,
+    const std::vector<std::pair<std::string, double>>& rejected) {
+    std::ofstream os(outPath, std::ios::out | std::ios::trunc);
+    if (!os.is_open()) return false;
+
+    auto writeMat = [&](const char* key, const cv::Mat& m) {
+        cv::Mat mm;
+        m.convertTo(mm, CV_64F);
+        os << key << ": !!opencv-matrix\n";
+        os << "   rows: " << mm.rows << "\n";
+        os << "   cols: " << mm.cols << "\n";
+        os << "   dt: d\n";
+        os << "   data: [";
+        for (int r = 0; r < mm.rows; ++r) {
+            for (int c = 0; c < mm.cols; ++c) {
+                os << mm.at<double>(r, c);
+                if (!(r == mm.rows - 1 && c == mm.cols - 1)) os << ", ";
+            }
+        }
+        os << "]\n";
+    };
+
+    os << "%YAML:1.0\n---\n";
+    os << "model: " << model << "\n";
+    os << "pattern_cols: " << pattern.width << "\n";
+    os << "pattern_rows: " << pattern.height << "\n";
+    os << "square_mm: " << squareMm << "\n";
+    os << "image_width: " << imageSize.width << "\n";
+    os << "image_height: " << imageSize.height << "\n";
+    os << "rms_error_px: " << rms << "\n";
+    writeMat("camera_matrix", K);
+    writeMat("distortion_coefficients", D);
+
+    os << "kept_images: [";
+    for (size_t i = 0; i < keptImagePaths.size(); ++i) {
+        os << "\"" << fs::path(keptImagePaths[i]).filename().string() << "\"";
+        if (i + 1 != keptImagePaths.size()) os << ", ";
+    }
+    os << "]\n";
+
+    os << "per_image_reproj_error_px: {";
+    {
+        bool first = true;
+        for (const auto& kv : perImage) {
+            if (!first) os << ", ";
+            first = false;
+            os << "\"" << fs::path(kv.first).filename().string() << "\": " << kv.second;
+        }
+    }
+    os << "}\n";
+
+    os << "rejected: [";
+    for (size_t i = 0; i < rejected.size(); ++i) {
+        os << "{path: \"" << rejected[i].first << "\", reproj_error_px: " << rejected[i].second << "}";
+        if (i + 1 != rejected.size()) os << ", ";
+    }
+    os << "]\n";
+
+    os.flush();
+    return os.good();
+}
+
 int main(int argc, char** argv) {
     fs::path imagesDir;
     std::string extLower = "png";
@@ -144,6 +218,8 @@ int main(int argc, char** argv) {
             return 2;
         }
     }
+
+    std::cout << "Build: " << __DATE__ << " " << __TIME__ << "\n";
 
     if (imagesDir.empty()) {
         std::cerr << "--images-dir is required\n";
@@ -345,10 +421,22 @@ int main(int argc, char** argv) {
     std::cout << "K:\n" << K << "\n\n";
     std::cout << "D:\n" << D.t() << "\n";
 
-    // Save YAML
-    cv::FileStorage fsOut(output, cv::FileStorage::WRITE);
+    // Save YAML (atomic: write to temp then rename)
+    const fs::path outPath = fs::path(output);
+    const fs::path outAbs = fs::absolute(outPath);
+    const fs::path tmpPath = outPath.string() + ".tmp";
+    if (outPath.has_parent_path()) {
+        std::error_code ec;
+        fs::create_directories(outPath.parent_path(), ec);
+        if (ec) {
+            std::cerr << "WARNING: Cannot create output directory: " << outPath.parent_path().string()
+                      << " (" << ec.message() << ")\n";
+        }
+    }
+
+    cv::FileStorage fsOut(tmpPath.string(), cv::FileStorage::WRITE | cv::FileStorage::FORMAT_YAML);
     if (!fsOut.isOpened()) {
-        std::cerr << "ERROR: Cannot write " << output << "\n";
+        std::cerr << "ERROR: Cannot write temp file " << fs::absolute(tmpPath).string() << "\n";
         return 1;
     }
 
@@ -385,7 +473,53 @@ int main(int argc, char** argv) {
     fsOut << "]";
 
     fsOut.release();
-    std::cout << "\nSaved: " << output << "\n";
+
+    auto fileNonEmpty = [&](const fs::path& p) -> bool {
+        std::error_code ec;
+        const auto sz = fs::file_size(p, ec);
+        return (!ec && sz > 0);
+    };
+
+    if (!fileNonEmpty(tmpPath)) {
+        std::cerr << "WARNING: FileStorage produced empty output; using fallback YAML writer...\n";
+
+        std::vector<std::string> keptPaths;
+        keptPaths.reserve(kept.size());
+        for (int idx : kept) keptPaths.push_back(paths[static_cast<size_t>(idx)]);
+
+        std::vector<std::pair<std::string, double>> rej;
+        rej.reserve(rejected.size());
+        for (const auto& r : rejected) rej.push_back({r.path, r.errorPx});
+
+        if (!writeOpenCvYamlFallback(tmpPath, model, pattern, squareMm, imageSize, rms, K, D, keptPaths, perImage, rej)) {
+            std::cerr << "ERROR: Fallback writer failed for " << fs::absolute(tmpPath).string() << "\n";
+            return 1;
+        }
+        if (!fileNonEmpty(tmpPath)) {
+            std::cerr << "ERROR: Temp output file is still empty: " << fs::absolute(tmpPath).string() << "\n";
+            return 1;
+        }
+    }
+
+    // Replace final output with temp (best effort)
+    {
+        std::error_code ec;
+        fs::remove(outPath, ec); // ignore errors (file may not exist)
+        ec.clear();
+        fs::rename(tmpPath, outPath, ec);
+        if (ec) {
+            std::cerr << "ERROR: Cannot rename temp output to final: " << ec.message() << "\n";
+            std::cerr << "Temp file kept at: " << fs::absolute(tmpPath).string() << "\n";
+            return 1;
+        }
+    }
+
+    if (!fileNonEmpty(outPath)) {
+        std::cerr << "ERROR: Final output file is empty: " << outAbs.string() << "\n";
+        return 1;
+    }
+
+    std::cout << "\nSaved: " << outAbs.string() << "\n";
 
     return 0;
 }
